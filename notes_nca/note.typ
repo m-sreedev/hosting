@@ -68,7 +68,7 @@ The task  is described as given below:
 2. A parent state can mutate into a daughter state A, or daughter state B, or stay as it is.
 3. The goal is to learn a set of update rules, so that the NCA settles into a configuration, where the ratio of daughter A to daughter B is a predefined target, and the number of cells in the parent state is as minimum as possible.
 
-A detailed note on this experiment is maintained #link("https:github.com")[here].
+A detailed note on this experiment is maintained #link("https://github.com/m-sreedev/hosting/blob/main/notes_nca/ratio_expt.pdf")[here].
 
 The ideal outcome here would be the non-local NCA demonstrating a notable reduction in convergence time over vanilla NCA. A decrease in convergence time conveys that cells in non-local grid could come to a conclusion about the global picture of the number of daughter A cells and daughter B cells quicker than the cells in the vanilla grid and therby is an indicator that it is a better model for tasks that estimate global properties.
 
