@@ -111,7 +111,7 @@ This ensures that the network learns rules which generalize to all kinds of wiri
 4. The Local CNN and the Non Local CNN outputs their own separate update grid. These are then independently added to the current grid and evolved.
 5. The rest of the training procedure proceeds similar to the vanilla NCA.
 
-_This version of the Non Local NCA is discarded now and the reasons are discussed later._
+_This version of the Non Local NCA is discarded now and the reasons are discussed in @v1_discard. _
 
 
 === v2
@@ -154,6 +154,49 @@ Each cell in the grid is initialized with a small random noise at 0. The weights
   ]]
 )<train_40_test_till_100>
 
-=== Analysis
 - From @train_40_test_till_100 it is evident that Non Local NCA has a clear advantage in convergence time. Plus the convergence time across seeds are stable for Non Local NCA #note[notice the small band for non local NCA compared to a very wide band for vanilla] compared to vanilla NCA which are all over the place. Does this mean that the Non-Local NCA converged to a more general rule across seeds, wirings and initializations that is not affected by perturbation?
-- Since the channels 2-5 are always set to 0 for the vanilla NCA, a reason for the slower performance of vanilla NCA might be due to effectively working with a lower parameter count. There is a need to perform the experiment with the effective parameters of vanilla NCA either matching or exceeding that if its non local counterpart to strengthen the claim for non local connections.
+
+
+=== Controls
+Since the channels 3-5 are always set to 0 for the vanilla NCA, a reason for the slower performance of vanilla NCA might be due to effectively working with a lower parameter count. There is a need to perform the experiment with the effective parameters of vanilla NCA either matching or exceeding that if its non local counterpart to strengthen the claim for non local connections.
+To address the effective parameters issue, two approaches were formed:
+1. Increase the parameters in the CNN only for the vanilla NCA, so the effective paramerters of both methods match.
+2. Add itself as a partner for the cell, which is indirectly copying the information in channls 0-2 to channels 3-5 with the same probability for long range connections. This is a cleaner approach.#note[because increasing the parameters changes the network, and it changes the ] The result of this approach is in @self_partner.
+
+#figure(
+  image("../ratio_expt/results/self_partner.png"),
+  caption: [Convergence Time vs Grid Size for vanilla NCA and Non Local NCA#note[denoted as small-world] and a self-partnered vanilla NCA with $p = 0.3$.]
+)<self_partner>
+
+- Adding a self partner did not help with the stability or the convergence time, when compared with the vanilla approach. This means parameters are not causing the performance jump, and can be ruled out.
+
+Another control experiment was performed with keeping 3 extra hidden channels active for the vanilla NCA, so that both vanilla and non-local NCA have 6 channels at all times.#note[even though many values in the last 3 channels in the non-local NCA are forced to 0] The results are shown in @extra_hidden .
+
+#figure(
+  image("../ratio_expt/results/extra_hidden.png", width: 75%),
+  caption: [Convergence Time vs Grid Size for vanilla NCA with 3channels (blue), vanilla NCA with 6 channels Non (orange, denoted as vanilla_c2) and a non-local NCA#note[denoted as small-world] and a self-partnered vanilla NCA with $p = 0.3$.]
+)<extra_hidden>
+
+After discussions with people at lossfunk#note[esp. Mahesh Tapeti] it was pointed out to me that the model was not learning anything and might be outputting the same output for any given input. A collapse check was performed comparing standard deviations between outputs of various inputs.The standard deviations tell that outputs are significantly different for differnet inputs.  A visualisation of some of those outputs are given in @collapse_check
+#figure(
+  image("../ratio_expt/collapse_fig.png"),
+  caption: [Iniital grids and final grids plotted for different initial conditions. Row 0 and Row 1: Intial conditions with both inital grid and wiring varied. Row 2,3: Initial conditions with only wiring varied. Row 4,5 : initial conditions with only initial grid varied. Row 6,7: Extreme intial conditions with grids starting only with either Cell A, Cell B or parent cell.]
+)<collapse_check>
+
+What would happen if we vary the long range connection distance or probability?
+
+#figure(
+  image("../ratio_expt/results/manhattan_control.png"),
+  caption: [Convergence Time vs Grid Size for different Manhattan Distances i.e, the length of long range connections. small_world (orange) has a minimum Manhattan distance of 10 and no maximum. small_world_8 (green) has minimum Manhattan Distance 8 and maximum 10. small_world_6 has a minimum of 6 and maximum of 8; and so on till small_world_4.]
+)<manhattan_control>
+
+A very surprising result from @manhattan_control, which shows the length of the long range connections do not influence the convergence time. A small world topology with a Manhattan Distance of 4 is showing the same performance of a toplogy with Manhattan Distance  of 10.
+
+The hunch is that probability of long-range connections is too much, and the distance effect might come into play at lower probabilites. Experiments sweeping the probability of a long range connection parameter are to be performed next. 
+
+=== Issues
+1. Convergence time is staying same along grid size, which is contrary to the hypothesis. If the nature of the problem was to leverage global information, it should be the case that as the grid size increases, the cells should spend longer time to assess it's global state and therefore we should see a proportional relationship, which is not the case here. This maybe a huge hint that the network is learning a rule which can carry out the task only with local information, so there might be need to revisit the task definition.
+
+= Appendix
+== Why v1 was discarded <v1_discard>
+v1 had two netwroks, one for local and one for non local. In the MLP for the non local case, the values from the long range conections were concatenated and passed as input to the CNN. The concatenation process means that the connection information is lost in the process#note[since there is no way for one to know which part of the input came from which connection] which was the reason for introducing v2.
